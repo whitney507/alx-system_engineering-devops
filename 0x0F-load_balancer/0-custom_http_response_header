@@ -1,24 +1,51 @@
 #!/usr/bin/env bash
-# Customizing a 404-error_page
+# configure web-02 to be identical to web-01
+# The name of the custom HTTP header must be X-Served-By
+# The value of the custom HTTP header must be the hostname
+#of the server Nginx is running on
+#!/usr/bin/env bash
 
-# Updating Packages before performing installations
-sudo apt-get update
-sudo apt-get install -y nginx
+# Update package repositories in system
+sudo apt-get -y update
 
-# Creating an index.html page
-echo "Hello World!" | sudo tee /var/www/html/index.html
+# Install Nginx in system
+sudo apt-get -y install nginx
 
-# Creating a 404 Custom error page
-echo "Ceci n'est pas une page" | sudo tee /var/www/html/404.html
-new_string="listen 80 default_server;\n\terror_page 404 \/404.html;\n\tlocation = \/404.html {\n\t\troot \/var\/www\/html;\n\t\tinternal;\n\t}"
+# Allow Nginx HTTP traffic
+sudo ufw allow 'Nginx HTTP'
 
-sudo sed -i "s/listen 80 default_server;/$new_string/" /etc/nginx/sites-enabled/default
+# Create necessary directories then set permissions
+sudo mkdir -p /var/www/html /var/www/error
+sudo chmod -R 755 /var/www
 
-# Creating an HTTP response header
-sudo sed -i "/server_name _/a add_header X-Served-By $HOSTNAME;" /etc/nginx/sites-enabled/default
+# Create index and 404 pages
+echo 'Hello World!' | sudo tee /var/www/html/index.html >/dev/null
+echo "Ceci n'est pas une page" | sudo tee /var/www/html/404.html >/dev/null
 
-# Testing configurations for syntax errors
-sudo nginx -t
+# Configure Nginx with custom header
+server_config=$(cat <<EOF
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    root /var/www/html;
+    index index.html index.htm index.nginx-debian.html;
+    server_name _;
+    add_header X-Served-By \$hostname;
+    location / {
+        try_files \$uri \$uri/ =404;
+    }
+    if (\$request_filename ~ redirect_me) {
+        rewrite ^ https://youtube.com permanent;
+    }
+    error_page 404 /404.html;
+    location = /404.html {
+        internal;
+    }
+}
+EOF
+)
+#Apply config configuration
+echo "$server_config" | sudo tee /etc/nginx/sites-enabled/default >/dev/null
 
-# Restart nginx after implementing changes
+# Restart Nginx service to apply new configuration
 sudo service nginx restart
