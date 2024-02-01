@@ -18,11 +18,11 @@ defaults
     timeout client 50000ms
     timeout server 50000ms
 
-frontend http_front
+frontend whitneyoduor-tech-frontend
     bind *:80
-    default_backend http_back
+    default_backend whitneyoduor-tech-backend
 
-backend http_back
+backend whitneyoduor-tech-backend
     balance roundrobin
     server web-01 52.91.153.3 check
     server web-02 35.153.255.225 check
