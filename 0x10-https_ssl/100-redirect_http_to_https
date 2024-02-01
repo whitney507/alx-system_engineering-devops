@@ -36,6 +36,7 @@ defaults
 frontend http_front
         bind *:80
         default_backend http_back
+
 backend http_back
         balance roundrobin
         server 426807-web-01 52.91.153.3:80 check
